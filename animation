@@ -123,7 +123,7 @@ local animationSets = {
 		Wiperware = {Idle="136507569552573", Walk="83428305423587", Sprint="120893352730955", Special="87704069305565"},
 	},
 	Other = {
-        Default = {Idle="100930402371608", Walk="84388941697203", Sprint="137375023685630", Special="0"}, 
+		Default = {Idle="100930402371608", Walk="84388941697203", Sprint="137375023685630", Special="0"},
 		Civilian = {Idle="100930402371608", Walk="84388941697203", Sprint="137375023685630", Special="0"},
 		None = {Idle="0", Walk="0", Sprint="0", Special="0"},
 		Ghost = {Idle="110395159339100", Walk="133938914809228", Sprint="124260679864309", Special="0"},
@@ -135,8 +135,8 @@ local animationSets = {
 local blendTime = 0.2
 local activeSetName, activeCategory = nil, nil
 local characterData = {}
-local favourites = {} -- { ["Category|SetName"] = true }
-local currentTabCategory = nil -- track which tab is open ("__FAVOURITES__" or a real category)
+local favourites = {}
+local currentTabCategory = nil
 local currentSearchText = ""
 
 local tabShortNames = {
@@ -240,21 +240,23 @@ toggleButton.Draggable = true
 toggleButton.Parent = screenGui
 Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 10)
 
--- Main frame (taller to fit search bar)
+-- Main frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 340, 0, 440)
+mainFrame.Size = UDim2.new(0, 340, 0, 460)
 mainFrame.Position = UDim2.new(1, -360, 0, 20)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Visible = false
+mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
 
 -- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.Size = UDim2.new(1, 0, 0, 36)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Animation Menu"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -262,36 +264,54 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextScaled = true
 titleLabel.Parent = mainFrame
 
+-- Active animation label
+local activeLabel = Instance.new("TextLabel")
+activeLabel.Size = UDim2.new(1, -20, 0, 18)
+activeLabel.Position = UDim2.new(0, 10, 0, 37)
+activeLabel.BackgroundTransparency = 1
+activeLabel.Text = "Playing: None"
+activeLabel.TextColor3 = Color3.fromRGB(150, 200, 150)
+activeLabel.Font = Enum.Font.Gotham
+activeLabel.TextSize = 13
+activeLabel.TextXAlignment = Enum.TextXAlignment.Left
+activeLabel.Parent = mainFrame
+
 -- Close button
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 36, 0, 36)
-closeBtn.Position = UDim2.new(1, 5, 0, -18)
-closeBtn.AnchorPoint = Vector2.new(0, 0)
+closeBtn.Position = UDim2.new(1, -40, 0, 2)
 closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Text = "X"
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextScaled = true
+closeBtn.ZIndex = 10
 closeBtn.Parent = mainFrame
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
--- Tab bar
-local tabBar = Instance.new("Frame")
+-- Tab bar — scrollable horizontally, fully clipped inside mainFrame
+local tabBar = Instance.new("ScrollingFrame")
 tabBar.Size = UDim2.new(1, -20, 0, 30)
-tabBar.Position = UDim2.new(0, 10, 0, 48)
+tabBar.Position = UDim2.new(0, 10, 0, 60)
 tabBar.BackgroundTransparency = 1
+tabBar.BorderSizePixel = 0
+tabBar.ScrollBarThickness = 3
+tabBar.ScrollingDirection = Enum.ScrollingDirection.X
+tabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+tabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
+tabBar.ClipsDescendants = true
 tabBar.Parent = mainFrame
+
 local tabList = Instance.new("UIListLayout")
 tabList.FillDirection = Enum.FillDirection.Horizontal
+tabList.VerticalAlignment = Enum.VerticalAlignment.Center
 tabList.Padding = UDim.new(0, 4)
 tabList.Parent = tabBar
 
--- ──────────────────────────────────────────────
--- SEARCH BAR
--- ──────────────────────────────────────────────
+-- Search bar
 local searchBox = Instance.new("TextBox")
 searchBox.Size = UDim2.new(1, -20, 0, 28)
-searchBox.Position = UDim2.new(0, 10, 0, 85)
+searchBox.Position = UDim2.new(0, 10, 0, 96)
 searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 searchBox.PlaceholderText = "🔍 Search animations..."
@@ -304,19 +324,21 @@ searchBox.BorderSizePixel = 0
 searchBox.Parent = mainFrame
 Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 8)
 
--- Scroll frame (pushed down to make room for search bar)
+-- Scroll frame (animation list)
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -20, 1, -122)
-scrollFrame.Position = UDim2.new(0, 10, 0, 120)
+scrollFrame.Size = UDim2.new(1, -20, 1, -132)
+scrollFrame.Position = UDim2.new(0, 10, 0, 130)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 scrollFrame.BorderSizePixel = 0
 scrollFrame.ScrollBarThickness = 6
 scrollFrame.Parent = mainFrame
 Instance.new("UICorner", scrollFrame).CornerRadius = UDim.new(0, 8)
+
 local uiListLayout = Instance.new("UIListLayout")
 uiListLayout.Padding = UDim.new(0, 6)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Parent = scrollFrame
+
 local scrollPadding = Instance.new("UIPadding")
 scrollPadding.PaddingTop = UDim.new(0, 6)
 scrollPadding.PaddingBottom = UDim.new(0, 6)
@@ -336,9 +358,6 @@ local function clearChildren(parent)
 	end
 end
 
--- ──────────────────────────────────────────────
--- CREATE ANIMATION BUTTON (with ⭐ favourite star)
--- ──────────────────────────────────────────────
 local function createAnimButton(setName, category, refreshCallback)
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, -8, 0, 38)
@@ -348,7 +367,9 @@ local function createAnimButton(setName, category, refreshCallback)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -44, 1, 0)
 	btn.Position = UDim2.new(0, 0, 0, 0)
-	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.BackgroundColor3 = (activeSetName == setName and activeCategory == category)
+		and Color3.fromRGB(80, 130, 80)
+		or Color3.fromRGB(50, 50, 50)
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	btn.Font = Enum.Font.GothamBold
 	btn.Text = setName
@@ -357,11 +378,6 @@ local function createAnimButton(setName, category, refreshCallback)
 	btn.BorderSizePixel = 0
 	btn.Parent = container
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-
-	-- Highlight if this is the active animation
-	if activeSetName == setName and activeCategory == category then
-		btn.BackgroundColor3 = Color3.fromRGB(80, 130, 80)
-	end
 
 	local starBtn = Instance.new("TextButton")
 	starBtn.Size = UDim2.new(0, 36, 1, 0)
@@ -381,7 +397,7 @@ local function createAnimButton(setName, category, refreshCallback)
 	btn.MouseButton1Click:Connect(function()
 		activeSetName, activeCategory = setName, category
 		loadAnimationSet(LocalPlayer.Character, category, setName)
-		-- Refresh current view to update highlight
+		activeLabel.Text = "Playing: [" .. (tabShortNames[category] or category) .. "] " .. setName
 		if refreshCallback then refreshCallback() end
 	end)
 
@@ -390,7 +406,6 @@ local function createAnimButton(setName, category, refreshCallback)
 		starBtn.BackgroundColor3 = isFavourited(category, setName)
 			and Color3.fromRGB(200, 160, 20)
 			or Color3.fromRGB(60, 60, 60)
-		-- If we're on the favourites tab, refresh it
 		if currentTabCategory == "__FAVOURITES__" then
 			if refreshCallback then refreshCallback() end
 		end
@@ -399,15 +414,10 @@ local function createAnimButton(setName, category, refreshCallback)
 	return container
 end
 
--- ──────────────────────────────────────────────
--- SHOW CATEGORY (with search filter support)
--- ──────────────────────────────────────────────
 local function showCategory(category)
 	currentTabCategory = category
 	clearChildren(scrollFrame)
-
 	local filter = currentSearchText:lower()
-
 	for setName in pairs(animationSets[category]) do
 		if filter == "" or setName:lower():find(filter, 1, true) then
 			createAnimButton(setName, category, function()
@@ -415,17 +425,12 @@ local function showCategory(category)
 			end)
 		end
 	end
-
 	updateScrollCanvas()
 end
 
--- ──────────────────────────────────────────────
--- SHOW FAVOURITES TAB
--- ──────────────────────────────────────────────
 local function showFavourites()
 	currentTabCategory = "__FAVOURITES__"
 	clearChildren(scrollFrame)
-
 	local filter = currentSearchText:lower()
 	local anyFound = false
 
@@ -436,7 +441,6 @@ local function showFavourites()
 			local sName = key:sub(sep + 1)
 			if animationSets[cat] and animationSets[cat][sName] then
 				if filter == "" or sName:lower():find(filter, 1, true) or cat:lower():find(filter, 1, true) then
-					-- Show "[Category] SetName" label
 					local labelFrame = Instance.new("Frame")
 					labelFrame.Size = UDim2.new(1, -8, 0, 38)
 					labelFrame.BackgroundTransparency = 1
@@ -485,6 +489,7 @@ local function showFavourites()
 					btn.MouseButton1Click:Connect(function()
 						activeSetName, activeCategory = capturedName, capturedCat
 						loadAnimationSet(LocalPlayer.Character, capturedCat, capturedName)
+						activeLabel.Text = "Playing: [" .. (tabShortNames[capturedCat] or capturedCat) .. "] " .. capturedName
 						showFavourites()
 					end)
 					starBtn.MouseButton1Click:Connect(function()
@@ -513,9 +518,6 @@ local function showFavourites()
 	updateScrollCanvas()
 end
 
--- ──────────────────────────────────────────────
--- SEARCH BAR — live filter
--- ──────────────────────────────────────────────
 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	currentSearchText = searchBox.Text
 	if currentTabCategory == "__FAVOURITES__" then
@@ -525,9 +527,6 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	end
 end)
 
--- ──────────────────────────────────────────────
--- BUILD TAB BUTTONS
--- ──────────────────────────────────────────────
 local tabButtons = {}
 
 local function setActiveTabColor(activeTab)
@@ -537,9 +536,9 @@ local function setActiveTabColor(activeTab)
 	activeTab.BackgroundColor3 = Color3.fromRGB(80, 110, 180)
 end
 
--- Favourites tab (first)
+-- Favourites tab
 local favTabBtn = Instance.new("TextButton")
-favTabBtn.Size = UDim2.new(0, 40, 1, 0)
+favTabBtn.Size = UDim2.new(0, 36, 0, 28)
 favTabBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 favTabBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
 favTabBtn.Font = Enum.Font.GothamBold
@@ -559,7 +558,7 @@ end)
 -- Category tabs
 for category in pairs(animationSets) do
 	local tabBtn = Instance.new("TextButton")
-	tabBtn.Size = UDim2.new(0, 40, 1, 0)
+	tabBtn.Size = UDim2.new(0, 36, 0, 28)
 	tabBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	tabBtn.Font = Enum.Font.GothamBold
@@ -578,16 +577,12 @@ for category in pairs(animationSets) do
 	end)
 end
 
--- Load first category by default
 local firstCategory = next(animationSets)
 if firstCategory then
 	showCategory(firstCategory)
 	activeCategory = firstCategory
 end
 
--- ──────────────────────────────────────────────
--- BLOCK CORE ANIMATIONS
--- ──────────────────────────────────────────────
 local function blockCoreAnimations(char)
 	if not char then return end
 	local animFolder = char:FindFirstChild("Animations")
@@ -623,9 +618,6 @@ if LocalPlayer.Character then
 	end)
 end
 
--- ──────────────────────────────────────────────
--- TOGGLE / CLOSE
--- ──────────────────────────────────────────────
 toggleButton.MouseButton1Click:Connect(function()
 	mainFrame.Visible = not mainFrame.Visible
 end)
