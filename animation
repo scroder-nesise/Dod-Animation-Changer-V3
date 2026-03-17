@@ -123,6 +123,7 @@ local animationSets = {
 		Wiperware = {Idle="136507569552573", Walk="83428305423587", Sprint="120893352730955", Special="87704069305565"},
 	},
 	Other = {
+        Default = {Idle="100930402371608", Walk="84388941697203", Sprint="137375023685630", Special="0"}, 
 		Civilian = {Idle="100930402371608", Walk="84388941697203", Sprint="137375023685630", Special="0"},
 		None = {Idle="0", Walk="0", Sprint="0", Special="0"},
 		Ghost = {Idle="110395159339100", Walk="133938914809228", Sprint="124260679864309", Special="0"},
